@@ -7,7 +7,24 @@
 
   All Collector creation functions take the same set of
   options. `:name` and `:help` are required, `:namespace`,
-  `:subsystem` & `:labels` are optional."
+  `:subsystem` & `:labels` are optional.
+
+  The expected usage pattern is to create a long lived Collector
+  instance, and use the functions in this package to track the
+  metrics. Most commonly, you will create a package level private var
+  to keep a reference to a metric.
+
+  ```clojure
+  (require '[daaku.metrics :as m])
+
+  (def ^:private m-emails-sent (m/counter {:name :emails-sent
+                                           :help \"emails we sent\"}))
+
+  (defn- send-email []
+    (println \"sending email\")
+    (m/inc m-emails-sent))
+  ```
+  "
 
   (:refer-clojure :exclude [inc dec set time])
   (:require [clojure.string :as str])

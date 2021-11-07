@@ -17,21 +17,29 @@
 (def opts-states (assoc opts :states [:foo]))
 (def opts-l-states (assoc opts-l :states [:foo]))
 
-(deftest sanitize-test
+(deftest register-test
+  (let [r (CollectorRegistry.)]
+    (m/register r (m/counter opts))
+    (is (= (.name (first (enumeration-seq (.metricFamilySamples r))))
+           m-fullname))))
+
+(deftest sanitize-name-test
   (dorun
    (map (fn [[in out]]
-          (is (= (m/sanitize in) out)))
+          (is (= (m/sanitize-name in) out)))
         [[:foo "foo"]
          [:foo-bar "foo_bar"]
          [:foo-bar--baz "foo_bar_baz"]
          ["foo-bar" "foo_bar"]
          ["foo" "foo"]])))
 
-(deftest register-test
-  (let [r (CollectorRegistry.)]
-    (m/register r (m/counter opts))
-    (is (= (.name (first (enumeration-seq (.metricFamilySamples r))))
-           m-fullname))))
+(deftest sanitize-value-test
+  (dorun
+   (map (fn [[in out]]
+          (is (= (m/sanitize-value in) out)))
+        [[:foo "foo"]
+         ["foo" "foo"]
+         [42 "42"]])))
 
 (deftest inc-test
   (dorun

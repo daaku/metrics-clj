@@ -44,8 +44,13 @@
             Summary
             Summary$Child]))
 
-(defn sanitize
-  "Sanitize a value to create a safe string suitable as a name,
+(defn register
+  "Register into a CollectorRegistry the given Collector."
+  [^CollectorRegistry r ^Collector c]
+  (.register r c))
+
+(defn sanitize-name
+  "Sanitize a name to create a safe string suitable as a name,
   namespace, subsystem or label."
   ^String [v]
   (-> ^String (if (keyword? v)
@@ -55,20 +60,24 @@
       (str/replace #"__+" "_")
       (str/replace #"(^_+|_+$)" "")))
 
-(defn register
-  "Register into a CollectorRegistry the given Collector."
-  [^CollectorRegistry r ^Collector c]
-  (.register r c))
+(defn- sanitize-name-strs ^"[Ljava.lang.String;" [vs]
+  (into-array String (map sanitize-name vs)))
 
-(defn- sanitize-strs ^"[Ljava.lang.String;" [vs]
-  (into-array String (map sanitize vs)))
+(defn sanitize-value
+  "Sanitize a value. Keywords are special and their name is used,
+  everything else is transformed to using `str`."
+  ^String [v]
+  (if (keyword? v)
+    (name v)
+    (str v)))
+
+(defn- sanitize-value-strs ^"[Ljava.lang.String;" [vs]
+  (into-array String (map sanitize-value vs)))
 
 (defn- sanitize-info ^java.util.Map [info]
   (let [m (java.util.HashMap.)]
     (dorun (map (fn [[k v]]
-                  (.put m (sanitize k) (if (keyword? v)
-                                         (name v)
-                                         (str v))))
+                  (.put m (sanitize-name k) (sanitize-value v)))
                 info))
     m))
 
@@ -126,14 +135,14 @@
 (defn- build-collector [^io.prometheus.client.SimpleCollector$Builder builder
                         {:keys [name help namespace subsystem labels]}]
   (.. builder
-      (name (sanitize name))
+      (name (sanitize-name name))
       (help help))
   (when namespace
-    (.namespace builder (sanitize namespace)))
+    (.namespace builder (sanitize-name namespace)))
   (when subsystem
-    (.subsystem builder (sanitize subsystem)))
+    (.subsystem builder (sanitize-name subsystem)))
   (when labels
-    (.labelNames builder (sanitize-strs labels)))
+    (.labelNames builder (sanitize-name-strs labels)))
   (.create builder))
 
 (defn counter
@@ -144,7 +153,7 @@
 (extend-type Counter
   WithLabels
   (with-labels [^Counter this labels]
-    (.labels this (sanitize-strs labels)))
+    (.labels this (sanitize-value-strs labels)))
 
   Increment
   (inc
@@ -169,7 +178,7 @@
 (extend-type Gauge
   WithLabels
   (with-labels [^Gauge this labels]
-    (.labels this (sanitize-strs labels)))
+    (.labels this (sanitize-value-strs labels)))
 
   Increment
   (inc
@@ -216,7 +225,7 @@
 (extend-type Summary
   WithLabels
   (with-labels [^Summary this labels]
-    (.labels this (sanitize-strs labels)))
+    (.labels this (sanitize-value-strs labels)))
 
   Observe
   (observe [^Summary this amount]
@@ -243,7 +252,7 @@
 (extend-type Histogram
   WithLabels
   (with-labels [^Histogram this labels]
-    (.labels this (sanitize-strs labels)))
+    (.labels this (sanitize-value-strs labels)))
 
   Observe
   (observe [^Histogram this amount]
@@ -266,22 +275,22 @@
   "Create Enumeration Collector. Also requires `:states`."
   [{:keys [states] :as opts}]
   (build-collector (-> (Enumeration/build)
-                       (.states (sanitize-strs states)))
+                       (.states (sanitize-value-strs states)))
                    opts))
 
 (extend-type Enumeration
   WithLabels
   (with-labels [^Enumeration this labels]
-    (.labels this (sanitize-strs labels)))
+    (.labels this (sanitize-value-strs labels)))
 
   State
   (set-state [^Enumeration this state]
-    (.state this (sanitize state))))
+    (.state this (sanitize-name state))))
 
 (extend-type Enumeration$Child
   State
   (set-state [^Enumeration$Child this state]
-    (.state this (sanitize state))))
+    (.state this (sanitize-name state))))
 
 (defn info
   "Create Info Collector."
@@ -291,7 +300,7 @@
 (extend-type Info
   WithLabels
   (with-labels [^Info this labels]
-    (.labels this (sanitize-strs labels)))
+    (.labels this (sanitize-value-strs labels)))
 
   SetInfo
   (set-info [^Info this info]

@@ -5,25 +5,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Java
-      uses: actions/setup-java@v2.3.1
-      with:
-        distribution: "temurin"
-        java-version: "17"
-    - name: Set up Lein
-      run: |
-        curl https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein > /home/linuxbrew/.linuxbrew/bin/lein
-        chmod +x /home/linuxbrew/.linuxbrew/bin/lein
-    - name: Checkout
-      uses: actions/checkout@v2.3.4
-    - name: Cache
-      uses: actions/cache@v2.1.6
-      with:
-        path: |
-          ~/.m2/repository
-          ~/.lein
-        key: ${{ runner.os }}-maven-${{ hashFiles('project.clj') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
-    - name: Test
-      run: lein test
+      - name: Set up clj-kondo
+        run: curl -sSf https://raw.githubusercontent.com/borkdude/clj-kondo/master/script/install-clj-kondo | bash -s -- --dir /home/linuxbrew/.linuxbrew/bin
+      - name: Set up Java
+        uses: actions/setup-java@v3.3.0
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - name: Set up Clojure
+        uses: DeLaGuardo/setup-clojure@5.1
+        with:
+          lein: 2.9.8
+      - name: Checkout
+        uses: actions/checkout@v3.0.2
+      - name: Restore Cache
+        uses: actions/cache@v3.0.2
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.lein
+          key: ${{ runner.os }}-lein-${{ hashFiles('project.clj') }}
+          restore-keys: |
+            ${{ runner.os }}-lein-
+      - name: Lint
+        run: clj-kondo --lint src --lint test
+      - name: Test
+        run: lein test

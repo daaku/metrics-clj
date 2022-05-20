@@ -3,5 +3,5 @@
   :url "https://github.com/daaku/metrics-clj"
   :scm {:name "git" :url "https://github.com/daaku/metrics-clj"}
   :license {:name "MIT License"}
-  :dependencies [[io.prometheus/simpleclient "0.12.0"]
-                 [org.clojure/clojure "1.10.3" :scope "provided"]])
+  :dependencies [[io.prometheus/simpleclient "0.15.0"]
+                 [org.clojure/clojure "1.11.1" :scope "provided"]])

@@ -119,5 +119,5 @@
 
 (deftest nil-help
   (let [c (m/counter {:name ::foo-bar-baz})]
-    (is (collector-includes? "daaku.metrics-test_foo-bar-baz" c))
+    (is (collector-includes? "daaku.metrics-test/foo-bar-baz" c))
     (is (collector-includes? "foo_bar_baz" c))))

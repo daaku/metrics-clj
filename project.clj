@@ -1,4 +1,4 @@
-(defproject org.clojars.daaku/metrics "1.0.0"
+(defproject org.clojars.daaku/metrics "1.1.0"
   :description "Clojure API over the Prometheus Java SDK."
   :url "https://github.com/daaku/metrics-clj"
   :scm {:name "git" :url "https://github.com/daaku/metrics-clj"}

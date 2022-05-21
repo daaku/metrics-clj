@@ -1,7 +1,9 @@
 (ns daaku.metrics-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is]]
             [daaku.metrics :as m])
-  (:import [io.prometheus.client CollectorRegistry]))
+  (:import [io.prometheus.client CollectorRegistry]
+           [io.prometheus.client.exporter.common TextFormat]))
 
 (def m-name "the_name")
 (def m-help "the help message")
@@ -106,3 +108,16 @@
                            "answer" "42"})))
         [(m/info opts)
          (m/with-labels (m/info opts-l) m-labels)])))
+
+(defn collector-includes? [substr c]
+  (let [r (CollectorRegistry.)
+        _ (m/register r c)
+        out (with-open [out (java.io.StringWriter.)]
+              (TextFormat/write004 out (.metricFamilySamples r))
+              (str out))]
+    (str/includes? out substr)))
+
+(deftest nil-help
+  (let [c (m/counter {:name ::foo-bar-baz})]
+    (is (collector-includes? "daaku.metrics-test_foo-bar-baz" c))
+    (is (collector-includes? "foo_bar_baz" c))))

@@ -49,13 +49,18 @@
   [^CollectorRegistry r ^Collector c]
   (.register r c))
 
+(defn- str-name [v join]
+  (if (keyword? v)
+    (if (qualified-keyword? v)
+      (str (namespace v) join (name v))
+      (name v))
+    (str v)))
+
 (defn sanitize-name
   "Sanitize a name to create a safe string suitable as a name,
   namespace, subsystem or label."
   ^String [v]
-  (-> ^String (if (keyword? v)
-                (name v)
-                (str v))
+  (-> ^String (str-name v "_")
       (Collector/sanitizeMetricName)
       (str/replace #"__+" "_")
       (str/replace #"(^_+|_+$)" "")))
@@ -133,10 +138,12 @@
      be sanitized."))
 
 (defn- build-collector [^io.prometheus.client.SimpleCollector$Builder builder
-                        {:keys [name help namespace subsystem labels]}]
+                        {:keys [name help namespace subsystem labels]}
+                        help-prefix]
+
   (.. builder
       (name (sanitize-name name))
-      (help help))
+      (help (or help (str help-prefix " " (str-name name "/")))))
   (when namespace
     (.namespace builder (sanitize-name namespace)))
   (when subsystem
@@ -148,7 +155,7 @@
 (defn counter
   "Create a Counter Collector."
   [opts]
-  (build-collector (Counter/build) opts))
+  (build-collector (Counter/build) opts "number of"))
 
 (extend-type Counter
   WithLabels
@@ -173,7 +180,7 @@
 (defn gauge
   "Create Gauge Collector."
   [opts]
-  (build-collector (Gauge/build) opts))
+  (build-collector (Gauge/build) opts "value of"))
 
 (extend-type Gauge
   WithLabels
@@ -220,7 +227,7 @@
 (defn summary
   "Create Summary Collector."
   [opts]
-  (build-collector (Summary/build) opts))
+  (build-collector (Summary/build) opts "summary of"))
 
 (extend-type Summary
   WithLabels
@@ -247,7 +254,7 @@
 (defn histogram
   "Create Histogram Collector."
   [opts]
-  (build-collector (Histogram/build) opts))
+  (build-collector (Histogram/build) opts "histogram of"))
 
 (extend-type Histogram
   WithLabels
@@ -276,7 +283,8 @@
   [{:keys [states] :as opts}]
   (build-collector (-> (Enumeration/build)
                        (.states (sanitize-value-strs states)))
-                   opts))
+                   opts
+                   "enumeration of"))
 
 (extend-type Enumeration
   WithLabels
@@ -295,7 +303,7 @@
 (defn info
   "Create Info Collector."
   [opts]
-  (build-collector (Info/build) opts))
+  (build-collector (Info/build) opts "information of"))
 
 (extend-type Info
   WithLabels
